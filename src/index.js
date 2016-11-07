@@ -10,28 +10,20 @@ app.get('/', (req, res) => {
 });
 
 app.get('/task2B', (req, res) => {
-  	console.info(req.query);
   	let fullname = req.query.fullname || '';
+  	let result = 'Invalid fullname';
+
+  	if (new RegExp(/[\d\.\,_\/\\]/g).test(fullname) || !fullname)
+		return res.send(result);
+
   	fullname = fullname.trim().replace(/\s\s+/g, ' ');
 
   	const nameParts = fullname.split(' ');
-  	console.log(nameParts);
-
-  	let result = 'Invalid fullname';
   	const countParts = nameParts.length;
-
-  	for (var i = 0; i < countParts; i++) {
-  		const part = nameParts[i].match(/^([^\d\s\t\.\,_\/\\]+)$/);
-
-  		if (part === null) {
-  			return res.send(result);
-  		}
-  	}
 
   	switch (countParts) {
   		case 3:
-  			const family = nameParts[2].charAt(0).toUpperCase() + nameParts[2].substr(1).toLowerCase();
-  			result = family + ' ' + getFirstLetter(nameParts[0]) + ' ' + getFirstLetter(nameParts[1]);
+  			result = capitalize(nameParts[2]) + ' ' + getFirstLetter(nameParts[0]) + ' ' + getFirstLetter(nameParts[1]);
   			break;
   		case 2:
   			result = nameParts[1] + ' ' + getFirstLetter(nameParts[0]);
@@ -43,6 +35,10 @@ app.get('/task2B', (req, res) => {
 
 	res.send(result);
 });
+
+function capitalize(word) {
+	return word.charAt(0).toUpperCase() + word.substr(1).toLowerCase();
+}
 
 function getFirstLetter(word) {
 	return word.substr(0, 1).toUpperCase() + '.';
