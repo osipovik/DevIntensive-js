@@ -9,10 +9,6 @@ app.use(cors());
 app.get('/task2C', (req, res) => {
   const username = req.query.username;
 
-  console.log(username);
-
-  // canonize();
-
 	res.send(canonize(username));
 });
 
