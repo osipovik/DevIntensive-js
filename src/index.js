@@ -1,76 +1,73 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
-import mongoose from 'mongoose';
-import Promise from 'bluebird';
-
-import Pet from './models/Pet';
-import User from './models/User';
-import saveDataInDb from './saveDataInDb';
-import isAdmin from './middlewares/isAdmin';
-
-mongoose.Promise = Promise;
-mongoose.connect('mongodb://osipovik:mt38rk@ds033047.mlab.com:33047/skb3')
-  .then(() => {
-    console.log('success connection to mongo');
-  })
-  .catch((err) => {
-    console.log('connection error', err);
-  });
+import fetch from 'node-fetch';
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
-// app.use(isAdmin);
 
-const requestTime = (req, res, next) => {
-  req.requestTime = Date.now();
-  next();
-};
-app.use(requestTime);
+const pcUrl = 'https://gist.githubusercontent.com/isuvorov/ce6b8d87983611482aac89f6d7bc0037/raw/pc.json';
 
-app.get('/clear', isAdmin, async (req, res) => {
-  await User.remove({});
-  await Pet.remove({});
-  return res.send('OK');
-});
-
-app.get('/users', async (req, res) => {
-  const users = await User.find();
-  return res.json(users);
-});
-
-app.get('/pets', async (req, res) => {
-  const pets = await Pet.find().populate('owner');
-  return res.json(pets);
-});
-
-app.post('/data', async (req, res) => {
-  const data = req.body;
-
-  console.log(data);
-
-  if(!data.user) 
-    return res.status(400).send('user required');
-  if(!data.pets) 
-    data.pets = [];
-
-  const user = await User.findOne({
-    name: data.user.name,
+let pc = {};
+fetch(pcUrl)
+  .then(async (res) => {
+    pc = await res.json();
+  })
+  .catch(err => {
+    console.log('Чтото пошло не так:', err);
   });
 
-  if (user) 
-    return res.status(400).send('user.name is exists');
+app.get('/task3A/volumes', (req, res) => {
+  const volumes = pc.hdd;
+  let returnVolumes = {};
+  let volumeLabels = [];
 
-  try {
-    const result = await saveDataInDb(data);
-    return res.json(result);
-  } catch(err) {
-    console.log('fucking error!!!');
-    return res.status(500).json(err);
+  volumes.forEach(hdd => {
+    if (returnVolumes[hdd.volume]) {
+      returnVolumes[hdd.volume] += hdd.size;  
+    } else {
+      volumeLabels[volumeLabels.length] = hdd.volume;
+      returnVolumes[hdd.volume] = hdd.size;
+    }
+  });
+
+  volumeLabels.forEach(label => returnVolumes[label] += "B");
+
+  res.status(200).json(returnVolumes);
+});
+
+app.get('/task3A(/:deep1)?(/:deep2)?(/:deep3)?', (req, res) => {
+  const params = req.params;
+  let returnValue = pc;
+
+  if (params.deep1) {
+    returnValue = pc[params.deep1];
   }
 
+  if (params.deep2 && returnValue != undefined) {
+    returnValue = returnValue[params.deep2];
+  }
+
+  if (params.deep3 && returnValue != undefined) {
+    returnValue = returnValue[params.deep3];
+  }
+
+  console.log(returnValue);
+
+  if (returnValue !== undefined) {
+    res.status(200).json(returnValue);
+  } else {
+    res.status(404).send('Not found');
+  }
 });
+
+
+// app.get('/clear', isAdmin, async (req, res) => {
+//   await User.remove({});
+//   await Pet.remove({});
+//   return res.send('OK');
+// });
 
 app.listen(3000, () => {
     console.log('Your app listening on port 3000!');
